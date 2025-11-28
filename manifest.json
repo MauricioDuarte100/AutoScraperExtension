@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "AutoFill - Text Expander",
+  "version": "1.0.0",
+  "description": "Expand text shortcuts automatically in any form.",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "clipboardRead"
+  ],
+  "action": {
+    "default_popup": "src/options/options.html",
+    "default_title": "AutoFill Settings"
+  },
+  "options_page": "src/options/options.html",
+  "background": {
+    "service_worker": "src/background/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "src/content.js"
+      ],
+      "run_at": "document_end"
+    }
+  ]
+}
