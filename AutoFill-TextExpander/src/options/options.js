@@ -58,6 +58,21 @@ function setupEventListeners() {
     exportBtn.addEventListener('click', exportTriggers);
     importBtn.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', importTriggers);
+
+    // Enter key to save
+    shortcutInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            expansionInput.focus();
+        }
+    });
+
+    expansionInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            saveTrigger();
+        }
+    });
 }
 
 // --- Rendering ---

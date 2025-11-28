@@ -30,6 +30,9 @@
             display: flex;
             height: 100vh;
             overflow: hidden;
+            /* Ensure popup has enough size */
+            min-width: 600px;
+            min-height: 500px;
         }
 
         /* Sidebar */
@@ -242,6 +245,10 @@
             z-index: 100;
         }
 
+        .modal-overlay.open {
+            display: flex;
+        }
+
         .modal {
             background: var(--surface);
             padding: 2rem;
@@ -249,11 +256,10 @@
             width: 100%;
             max-width: 500px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        }
-
-        /* FIX: Changed from .modal.open to .modal-overlay.open */
-        .modal-overlay.open {
-            display: flex;
+            /* Fix for small screens */
+            max-height: 85vh;
+            overflow-y: auto;
+            margin: 1rem;
         }
 
         .modal-header {
