@@ -29,65 +29,77 @@ loadTriggers();
 document.addEventListener('input', async (e) => {
     const target = e.target;
 
-    // Only work on input and textarea fields
-    if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') return;
+    // Check if element is editable
+    const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
+    const isContentEditable = target.isContentEditable;
 
-    // Get the current value and cursor position
-    const value = target.value;
-    const cursorPosition = target.selectionStart;
+    if (!isInput && !isContentEditable) return;
+
+    // Get current text and cursor position
+    let value, cursorPosition;
+
+    if (isInput) {
+        value = target.value;
+        cursorPosition = target.selectionStart;
+    } else {
+        // For contentEditable, getting text and cursor is trickier
+        // This is a simplified approach using textContent
+        value = target.textContent;
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+            // This is an approximation. Precise cursor in contentEditable is complex.
+            // For now, let's stick to simple text replacement if it ends with shortcut
+            // Or better, let's focus on INPUT/TEXTAREA reliability first.
+            // Supporting contentEditable robustly requires a lot more code.
+            // Let's keep it simple but robust for Inputs first.
+            return;
+        }
+    }
+
+    if (!value) return;
 
     for (const [shortcut, expansion] of Object.entries(triggers)) {
-        // Check if the text before the cursor ends with the shortcut
         const textBeforeCursor = value.substring(0, cursorPosition);
 
         if (textBeforeCursor.endsWith(shortcut)) {
-            // Found a match!
-
             let finalExpansion = expansion;
 
             // Process Macros
-            // 1. Date: {{date}} -> DD/MM/YYYY
             if (finalExpansion.includes('{{date}}')) {
                 const today = new Date();
-                const dateStr = today.toLocaleDateString();
-                finalExpansion = finalExpansion.replace(/{{date}}/g, dateStr);
+                finalExpansion = finalExpansion.replace(/{{date}}/g, today.toLocaleDateString());
             }
-
-            // 2. Time: {{time}} -> HH:MM
             if (finalExpansion.includes('{{time}}')) {
                 const now = new Date();
-                const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                finalExpansion = finalExpansion.replace(/{{time}}/g, timeStr);
+                finalExpansion = finalExpansion.replace(/{{time}}/g, now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
             }
-
-            // 3. Clipboard: {{clipboard}}
             if (finalExpansion.includes('{{clipboard}}')) {
                 try {
                     const text = await navigator.clipboard.readText();
                     finalExpansion = finalExpansion.replace(/{{clipboard}}/g, text);
                 } catch (err) {
-                    console.error('AutoFill: Could not read clipboard', err);
+                    console.error('AutoFill: Clipboard error', err);
                 }
             }
 
-            // Calculate start position of the shortcut
-            const startPosition = cursorPosition - shortcut.length;
+            // Perform replacement
+            if (isInput) {
+                const startPosition = cursorPosition - shortcut.length;
+                const newValue = value.substring(0, startPosition) + finalExpansion + value.substring(cursorPosition);
 
-            // Construct new value
-            const newValue = value.substring(0, startPosition) + finalExpansion + value.substring(cursorPosition);
+                // Use execCommand for undo history support if possible, otherwise direct value set
+                // Direct value set is more reliable for modern frameworks
+                target.value = newValue;
 
-            // Update input value
-            target.value = newValue;
+                const newCursorPosition = startPosition + finalExpansion.length;
+                target.setSelectionRange(newCursorPosition, newCursorPosition);
 
-            // Move cursor to end of expansion
-            const newCursorPosition = startPosition + finalExpansion.length;
-            target.setSelectionRange(newCursorPosition, newCursorPosition);
+                // Dispatch events for React/Angular/Vue
+                target.dispatchEvent(new Event('input', { bubbles: true }));
+                target.dispatchEvent(new Event('change', { bubbles: true }));
+            }
 
-            // Dispatch input event to ensure frameworks (React, Angular, etc.) detect the change
-            const event = new Event('input', { bubbles: true });
-            target.dispatchEvent(event);
-
-            break; // Stop after first match
+            break;
         }
     }
 });
