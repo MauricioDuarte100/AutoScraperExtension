@@ -93,7 +93,7 @@ function renderTriggers(triggers) {
         const li = document.createElement('li');
         li.className = 'trigger-item';
 
-        // Find the actual index in the main array (for deletion)
+        // Find the actual index in the main array (for deletion/editing)
         const realIndex = allTriggers.indexOf(trigger);
 
         li.innerHTML = `
@@ -102,6 +102,9 @@ function renderTriggers(triggers) {
                 <span class="expansion-preview" title="${escapeHtml(trigger.expansion)}">${escapeHtml(trigger.expansion)}</span>
             </div>
             <div class="actions">
+                <button class="icon-btn edit-btn" data-index="${realIndex}" title="Edit">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                </button>
                 <button class="icon-btn delete-btn" data-index="${realIndex}" title="Delete">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                 </button>
@@ -118,37 +121,69 @@ function renderTriggers(triggers) {
             deleteTrigger(index);
         });
     });
+
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const index = parseInt(e.currentTarget.getAttribute('data-index'));
+            editTrigger(index);
+        });
+    });
 }
 
 // --- Actions ---
 
-function openModal() {
-    shortcutInput.value = '';
-    expansionInput.value = '';
+let editingIndex = -1; // Track which trigger is being edited
+
+function openModal(isEdit = false) {
+    if (!isEdit) {
+        shortcutInput.value = '';
+        expansionInput.value = '';
+        editingIndex = -1;
+        document.querySelector('.modal-title').textContent = 'Add New Trigger';
+    } else {
+        document.querySelector('.modal-title').textContent = 'Edit Trigger';
+    }
     modal.classList.add('open');
     shortcutInput.focus();
 }
 
 function closeModalFunc() {
     modal.classList.remove('open');
+    editingIndex = -1;
+}
+
+function editTrigger(index) {
+    const trigger = allTriggers[index];
+    shortcutInput.value = trigger.shortcut;
+    expansionInput.value = trigger.expansion;
+    editingIndex = index;
+    openModal(true);
 }
 
 function saveTrigger() {
     const shortcut = shortcutInput.value.trim();
-    const expansion = expansionInput.value; // Don't trim expansion, spaces might be intentional
+    const expansion = expansionInput.value; // Don't trim expansion
 
     if (!shortcut || !expansion) {
         alert('Please fill in both fields.');
         return;
     }
 
-    // Check for duplicates
-    if (allTriggers.some(t => t.shortcut === shortcut)) {
+    // Check for duplicates (exclude current if editing)
+    const duplicate = allTriggers.find((t, i) => t.shortcut === shortcut && i !== editingIndex);
+    if (duplicate) {
         alert('This shortcut already exists.');
         return;
     }
 
-    allTriggers.push({ shortcut, expansion });
+    if (editingIndex >= 0) {
+        // Update existing
+        allTriggers[editingIndex] = { shortcut, expansion };
+    } else {
+        // Create new
+        allTriggers.push({ shortcut, expansion });
+    }
+
     saveToStorage();
     closeModalFunc();
 }
