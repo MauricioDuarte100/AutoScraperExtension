@@ -176,6 +176,17 @@ function saveTrigger() {
         return;
     }
 
+    // Check for prefix conflicts (e.g., ";m" vs ";ma")
+    const conflict = allTriggers.find((t, i) => {
+        if (i === editingIndex) return false; // Ignore self
+        return shortcut.startsWith(t.shortcut) || t.shortcut.startsWith(shortcut);
+    });
+
+    if (conflict) {
+        alert(`Conflict detected!\n\nThis shortcut conflicts with "${conflict.shortcut}".\n\nOne is a prefix of the other, which means the shorter one will always trigger first, preventing the longer one from working.`);
+        return;
+    }
+
     if (editingIndex >= 0) {
         // Update existing
         allTriggers[editingIndex] = { shortcut, expansion };
